@@ -187,6 +187,17 @@ namespace Confuser.Renamer {
 			else
 				return type.IsVisibleOutside(false) && !renPublic.Value;
 		}
+		static bool IsInternalPublic(ConfuserContext context, ProtectionParameters parameters, IMemberDef def) {
+			var type = def as TypeDef;
+			if (type == null)
+				type = def.DeclaringType;
+
+			var renInternalPublic = parameters.GetParameter<bool?>(context, def, "renInternalPublic", null);
+			if (renInternalPublic == null)
+				return type.IsInternalPublic();
+			else
+				return type.IsInternalPublic(false) && !renInternalPublic.Value;
+		}
 
 		void Analyze(NameService service, ConfuserContext context, ProtectionParameters parameters, TypeDef type) {
 			if (IsVisibleOutside(context, parameters, type)) {
@@ -209,6 +220,9 @@ namespace Confuser.Renamer {
 		}
 
 		void Analyze(NameService service, ConfuserContext context, ProtectionParameters parameters, MethodDef method) {
+			if (IsInternalPublic(context, parameters, type)) {
+				service.SetCanRename(type, false);
+			}
 			if (IsVisibleOutside(context, parameters, method.DeclaringType) &&
 				(method.IsFamily || method.IsFamilyOrAssembly || method.IsPublic) &&
 				IsVisibleOutside(context, parameters, method))

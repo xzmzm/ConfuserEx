@@ -158,6 +158,27 @@ namespace Confuser.Core {
 
 			throw new UnreachableException();
 		}
+		/// <summary>
+		///     Determines whether the specified type is internally public.
+		/// </summary>
+		/// <param name="typeDef">The type.</param>
+		/// <param name="exeNonPublic">Visibility of executable modules.</param>
+		/// <returns><c>true</c> if the specified type is visible outside the containing assembly; otherwise, <c>false</c>.</returns>
+		public static bool IsInternalPublic(this TypeDef typeDef, bool exeNonPublic = true) {
+			// Assume executable modules' type is not visible
+			if (exeNonPublic && (typeDef.Module.Kind == ModuleKind.Windows || typeDef.Module.Kind == ModuleKind.Console))
+				return false;
+
+			do {
+				if (typeDef.DeclaringType == null)
+					return typeDef.IsPublic;
+				if (!typeDef.IsNestedPublic && !typeDef.IsNestedFamily && !typeDef.IsNestedFamilyOrAssembly)
+					return false;
+				typeDef = typeDef.DeclaringType;
+			} while (typeDef != null);
+
+			throw new UnreachableException();
+		}
 
 		/// <summary>
 		///     Determines whether the object has the specified custom attribute.
