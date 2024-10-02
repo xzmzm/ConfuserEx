@@ -189,6 +189,7 @@ namespace Confuser.Renamer {
 				return type.IsVisibleOutside(false) && !renPublic.Value;
 		}
 		static bool IsPublicMethod(ConfuserContext context, ProtectionParameters parameters, MethodDef method) {
+			return false;
 			var renPublic = parameters.GetParameter<bool?>(context, method, "renPublic", null);
 			if (renPublic == true)
 				return false;

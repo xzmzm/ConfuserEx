@@ -27,6 +27,8 @@ namespace Confuser.Core.Project {
 			fns.Add(InheritsFunction.FnName, () => new InheritsFunction());
 			fns.Add(IsTypeFunction.FnName, () => new IsTypeFunction());
 			fns.Add(HasAttrFunction.FnName, () => new HasAttrFunction());
+			fns.Add(HasModifierFunction.FnName, () => new HasModifierFunction());
+			fns.Add(TypeHasModifierFunction.FnName, () => new TypeHasModifierFunction());
 
 			ops = new Dictionary<string, Func<PatternOperator>>(StringComparer.OrdinalIgnoreCase);
 			ops.Add(AndOperator.OpName, () => new AndOperator());

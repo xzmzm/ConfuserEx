@@ -1,11 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
-
-  <Import Project="..\ConfuserEx.Common.props" Condition="Exists('..\ConfuserEx.Common.props')" />
-
+﻿<Project Sdk="MSBuild.Sdk.Extras/3.0.23">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net461</TargetFramework>
     <UseWPF>true</UseWPF>
+    <ExtrasEnableWpfProjectSetup>true</ExtrasEnableWpfProjectSetup>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\ConfuserEx.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
@@ -32,7 +31,4 @@
     <Resource Include="ConfuserEx.ico" />
     <Resource Include="Resources\FontAwesome.otf" />
   </ItemGroup>
-
-  <Import Project="..\ConfuserEx.Common.targets" Condition="Exists('..\ConfuserEx.Common.targets')" />
-
 </Project>
