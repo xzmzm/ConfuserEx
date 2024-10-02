@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using Confuser.Core;
 using Confuser.Core.Services;
 using Confuser.Renamer.Analyzers;
@@ -187,16 +188,15 @@ namespace Confuser.Renamer {
 			else
 				return type.IsVisibleOutside(false) && !renPublic.Value;
 		}
-		static bool IsInternalPublic(ConfuserContext context, ProtectionParameters parameters, IMemberDef def) {
-			var type = def as TypeDef;
-			if (type == null)
-				type = def.DeclaringType;
-
-			var renInternalPublic = parameters.GetParameter<bool?>(context, def, "renInternalPublic", null);
-			if (renInternalPublic == null)
-				return type.IsInternalPublic();
+		static bool IsPublicMethod(ConfuserContext context, ProtectionParameters parameters, MethodDef method) {
+			var renPublic = parameters.GetParameter<bool?>(context, method, "renPublic", null);
+			if (renPublic == true)
+				return false;
+			var renPublicMethod = parameters.GetParameter<bool?>(context, method, "renPublicMethod", null);
+			if (renPublicMethod == null)
+				return method.IsPublic;
 			else
-				return type.IsInternalPublic(false) && !renInternalPublic.Value;
+				return method.IsPublic && !renPublicMethod.Value;
 		}
 
 		void Analyze(NameService service, ConfuserContext context, ProtectionParameters parameters, TypeDef type) {
@@ -220,10 +220,10 @@ namespace Confuser.Renamer {
 		}
 
 		void Analyze(NameService service, ConfuserContext context, ProtectionParameters parameters, MethodDef method) {
-			if (IsInternalPublic(context, parameters, type)) {
-				service.SetCanRename(type, false);
+			if (IsPublicMethod(context, parameters, method)) {
+				service.SetCanRename(method, false);
 			}
-			if (IsVisibleOutside(context, parameters, method.DeclaringType) &&
+			else if (IsVisibleOutside(context, parameters, method.DeclaringType) &&
 				(method.IsFamily || method.IsFamilyOrAssembly || method.IsPublic) &&
 				IsVisibleOutside(context, parameters, method))
 				service.SetCanRename(method, false);
