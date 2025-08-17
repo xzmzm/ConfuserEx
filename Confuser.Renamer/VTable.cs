@@ -156,7 +156,7 @@ namespace Confuser.Renamer {
 					if (slots.Select(g => g.Key)
 						.Any(sig => virtualMethods.ContainsKey(sig) || vTbl.SlotsMap.ContainsKey(sig))) {
 						// Something has a new signature. We need to rewrite the whole thing.
-						
+
 						// This is the step 1 of 12.2 algorithm -- find implementation for still empty slots.
 						// Note that it seems we should include newslot methods as well, despite what the standard said.
 						slots = slots
@@ -202,7 +202,13 @@ namespace Confuser.Renamer {
 				foreach (var impl in method.Value.Overrides) {
 					Debug.Assert(impl.MethodBody == method.Value);
 
+					// In .NET Core, System.Object.Finalize is gone.
+					// The C# compiler still generates an override for it, which causes an exception here.
+					// We can safely ignore it, since we don't want to rename Finalize anyway. If it can't be resolved, it's probably the .NET Core case.
+					if (impl.MethodDeclaration.Name == "Finalize") // && impl.MethodDeclaration.ResolveMethodDef() == null)
+						continue;
 					MethodDef targetMethod = impl.MethodDeclaration.ResolveThrow();
+
 					if (targetMethod.DeclaringType.IsInterface) {
 						var iface = impl.MethodDeclaration.DeclaringType.ToTypeSig();
 						CheckKeyExist(storage, vTbl.InterfaceSlots, iface, "MethodImpl Iface");
@@ -214,7 +220,7 @@ namespace Confuser.Renamer {
 						vTbl.InterfaceSlots[iface] = ifaceVTbl
 							.SelectMany(g => g.Select(slot => (g.Key, Slot: slot)))
 							.ToLookup(t => t.Key, t => {
-								if (!t.Key.Equals(signature)) 
+								if (!t.Key.Equals(signature))
 									return t.Slot;
 
 								var targetSlot = t.Slot;

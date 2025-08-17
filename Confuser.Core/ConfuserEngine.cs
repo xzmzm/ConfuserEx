@@ -98,7 +98,7 @@ namespace Confuser.Core {
 				context.OutputDirectory = Path.Combine(context.Project.BaseDirectory, context.Project.OutputDirectory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar);
 				foreach (string probePath in context.Project.ProbePaths)
 					asmResolver.PostSearchPaths.Insert(0, Path.Combine(context.BaseDirectory, probePath));
-
+				//asmResolver.PostSearchPaths.Insert(0, @"C:\Program Files\dotnet\shared\Microsoft.NETCore.App\9.0.8");
 				context.CheckCancellation();
 
 				Marker marker = parameters.GetMarker();

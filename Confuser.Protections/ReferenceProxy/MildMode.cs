@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Confuser.Core;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
@@ -17,8 +18,14 @@ namespace Confuser.Protections.ReferenceProxy {
 			if (target.DeclaringType.ResolveTypeDefThrow().IsValueType)
 				return;
 			// Skipping visibility is not supported in mild mode.
-			if (!target.ResolveThrow().IsPublic && !target.ResolveThrow().IsAssembly)
+			try {
+				if (!target.ResolveThrow().IsPublic && !target.ResolveThrow().IsAssembly)
+					return;
+			}
+			catch (Exception ex) {
+				Console.WriteLine($"Exception: {ex.Message}");
 				return;
+			}
 
 			Tuple<Code, TypeDef, IMethod> key = Tuple.Create(invoke.OpCode.Code, ctx.Method.DeclaringType, target);
 			MethodDef proxy;
@@ -31,10 +38,16 @@ namespace Confuser.Protections.ReferenceProxy {
 				ctx.Method.DeclaringType.Methods.Add(proxy);
 
 				// Fix peverify --- Non-virtual call to virtual methods must be done on this pointer
-				if (invoke.OpCode.Code == Code.Call && target.ResolveThrow().IsVirtual) {
+				try {
+					if (invoke.OpCode.Code == Code.Call && target.ResolveThrow().IsVirtual) {
 					proxy.IsStatic = false;
 					sig.HasThis = true;
 					sig.Params.RemoveAt(0);
+				}
+				}
+				catch (Exception ex) {
+					Console.WriteLine($"Exception: {ex.Message}");
+					return;
 				}
 
 				ctx.Marker.Mark(proxy, ctx.Protection);

@@ -74,6 +74,15 @@ namespace Confuser.Renamer.Analyzers {
 		}
 
 		public static void Analyze(INameService service, ICollection<ModuleDefMD> modules, MethodDef method) {
+			// Finalizers are special methods that should not be renamed.
+			// They also don't have a base method in modern .NET, so we need to exclude them from the override search.
+			if (method.Name == "Finalize" && method.IsVirtual &&
+				method.MethodSig.Params.Count == 0 &&
+				method.MethodSig.RetType.GetElementType() == ElementType.Void) {
+				service.SetCanRename(method, false);
+				return;
+			}
+
 			if (!method.IsVirtual)
 				return;
 
@@ -388,3 +397,4 @@ namespace Confuser.Renamer.Analyzers {
 		}
 	}
 }
+
