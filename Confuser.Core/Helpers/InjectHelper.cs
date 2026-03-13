@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using dnlib.DotNet;
@@ -64,8 +64,22 @@ namespace Confuser.Core.Helpers {
 				ctx.DefMap[typeDef] = ret;
 			}
 
-			foreach (TypeDef nestedType in typeDef.NestedTypes)
-				ret.NestedTypes.Add(PopulateContext(nestedType, ctx));
+			foreach (TypeDef nestedType in typeDef.NestedTypes) {
+				// .NET Core/.NET 5+ runtimes enforce strict metadata validation and do not allow
+				// the <Module> global type to have nested types (NestedClass table entries with
+				// <Module> as the enclosing type cause BadImageFormatException).
+				// When the target type is the GlobalType, promote nested types to top-level
+				// module types instead of adding them as nested types.
+				if (ret == ctx.TargetModule.GlobalType) {
+					var promoted = PopulateContext(nestedType, ctx);
+					// Change visibility from nested to top-level
+					promoted.Attributes = (promoted.Attributes & ~TypeAttributes.VisibilityMask) | TypeAttributes.NotPublic;
+					ctx.TargetModule.Types.Add(promoted);
+				}
+				else {
+					ret.NestedTypes.Add(PopulateContext(nestedType, ctx));
+				}
+			}
 
 			foreach (MethodDef method in typeDef.Methods)
 				ret.Methods.Add((MethodDef)(ctx.DefMap[method] = Clone(method)));
