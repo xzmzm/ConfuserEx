@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using dnlib.Threading;
+using dnlib.PE;
 
 namespace dnlib.DotNet {
 	/// <summary>
@@ -428,8 +429,16 @@ namespace dnlib.DotNet {
 			var asmComparer = AssemblyNameComparer.CompareAll;
 			foreach (var path in paths) {
 				ModuleDefMD mod = null;
+				IPEImage peImage = null;
 				try {
-					mod = ModuleDefMD.Load(path, moduleContext);
+					peImage = new PEImage(path);
+					if (peImage.ImageNTHeaders.OptionalHeader.DataDirectories.Length <= 14 ||
+					    peImage.ImageNTHeaders.OptionalHeader.DataDirectories[14].VirtualAddress == 0) {
+						peImage.Dispose();
+						continue;
+					}
+					mod = ModuleDefMD.Load(peImage, moduleContext);
+					peImage = null; // mod now owns peImage
 					var asm = mod.Assembly;
 					if (asm is not null && asmComparer.Equals(assembly, asm)) {
 						mod = null;
@@ -439,6 +448,8 @@ namespace dnlib.DotNet {
 				catch {
 				}
 				finally {
+					if (peImage is not null)
+						peImage.Dispose();
 					if (mod is not null)
 						mod.Dispose();
 				}
@@ -470,8 +481,16 @@ namespace dnlib.DotNet {
 			var asmComparer = AssemblyNameComparer.CompareAll;
 			foreach (var path in paths) {
 				ModuleDefMD mod = null;
+				IPEImage peImage = null;
 				try {
-					mod = ModuleDefMD.Load(path, moduleContext);
+					peImage = new PEImage(path);
+					if (peImage.ImageNTHeaders.OptionalHeader.DataDirectories.Length <= 14 ||
+					    peImage.ImageNTHeaders.OptionalHeader.DataDirectories[14].VirtualAddress == 0) {
+						peImage.Dispose();
+						continue;
+					}
+					mod = ModuleDefMD.Load(peImage, moduleContext);
+					peImage = null; // mod now owns peImage
 					var asm = mod.Assembly;
 					if (asm is not null && asmComparer.CompareClosest(assembly, closest, asm) == 1) {
 						if (!IsCached(closest) && closest is not null) {
@@ -486,6 +505,8 @@ namespace dnlib.DotNet {
 				catch {
 				}
 				finally {
+					if (peImage is not null)
+						peImage.Dispose();
 					if (mod is not null)
 						mod.Dispose();
 				}
@@ -761,7 +782,7 @@ namespace dnlib.DotNet {
 
 		IEnumerable<string> FindAssembliesModuleSearchPaths(IAssembly assembly, ModuleDef sourceModule, bool matchExactly) {
 			string asmSimpleName = UTF8String.ToSystemStringOrEmpty(assembly.Name);
-			var searchPaths = GetSearchPaths(sourceModule);
+			var searchPaths = this.GetSearchPaths(sourceModule);
 			var exts = assembly.IsContentTypeWindowsRuntime ? winMDAssemblyExtensions : assemblyExtensions;
 			foreach (var ext in exts) {
 				foreach (var path in searchPaths) {
@@ -780,6 +801,49 @@ namespace dnlib.DotNet {
 						if (File.Exists(path2))
 							yield return path2;
 					}
+
+					string runtimesDir = Path.Combine(path, "runtimes");
+					if (Directory.Exists(runtimesDir)) {
+						foreach (string file in this.FindInRuntimes(runtimesDir, asmSimpleName + ext)) {
+							yield return file;
+						}
+					}
+				}
+			}
+		}
+
+		private IEnumerable<string> FindInRuntimes(string runtimesDir, string fileName) {
+			string[] ridDirs;
+			try {
+				ridDirs = Directory.GetDirectories(runtimesDir);
+			}
+			catch {
+				yield break;
+			}
+
+			foreach (string ridDir in ridDirs) {
+				string libDir = Path.Combine(ridDir, "lib");
+				if (Directory.Exists(libDir)) {
+					string[] tfmDirs;
+					try {
+						tfmDirs = Directory.GetDirectories(libDir);
+					}
+					catch {
+						continue;
+					}
+
+					foreach (string tfmDir in tfmDirs) {
+						string filePath = Path.Combine(tfmDir, fileName);
+						if (File.Exists(filePath))
+							yield return filePath;
+					}
+				}
+
+				string nativeDir = Path.Combine(ridDir, "native");
+				if (Directory.Exists(nativeDir)) {
+					string filePath = Path.Combine(nativeDir, fileName);
+					if (File.Exists(filePath))
+						yield return filePath;
 				}
 			}
 		}
