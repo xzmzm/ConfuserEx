@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -45,6 +45,10 @@ namespace Confuser.Protections.AntiTamper {
 
 		public uint GetVirtualSize() {
 			return GetFileLength();
+		}
+
+		public uint CalculateAlignment() {
+			return 0;
 		}
 
 		public void WriteTo(DataWriter writer) {
@@ -222,6 +226,10 @@ namespace Confuser.Protections.AntiTamper {
 
 		public uint GetVirtualSize() {
 			return GetFileLength();
+		}
+
+		public uint CalculateAlignment() {
+			return 0;
 		}
 
 		public void WriteTo(DataWriter writer) {

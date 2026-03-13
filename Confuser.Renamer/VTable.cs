@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -29,13 +29,13 @@ namespace Confuser.Renamer {
 			var other = obj as VTableSignature;
 			if (other == null)
 				return false;
-			return new SigComparer().Equals(MethodSig, other.MethodSig) &&
+			return new SigComparer(SigComparerOptions.DontCompareTypeScope).Equals(MethodSig, other.MethodSig) &&
 				   Name.Equals(other.Name, StringComparison.Ordinal);
 		}
 
 		public override int GetHashCode() {
 			int hash = 17;
-			hash = hash * 7 + new SigComparer().GetHashCode(MethodSig);
+			hash = hash * 7 + new SigComparer(SigComparerOptions.DontCompareTypeScope).GetHashCode(MethodSig);
 			return hash * 7 + Name.GetHashCode();
 		}
 
@@ -95,10 +95,12 @@ namespace Confuser.Renamer {
 	}
 
 	public class VTable {
+		private static readonly TypeEqualityComparer IgnoreScopeTypeComparer = new TypeEqualityComparer(SigComparerOptions.DontCompareTypeScope);
+
 		internal VTable(TypeSig type) {
 			Type = type;
 			Slots = new List<VTableSlot>();
-			InterfaceSlots = new Dictionary<TypeSig, IList<VTableSlot>>(TypeEqualityComparer.Instance);
+			InterfaceSlots = new Dictionary<TypeSig, IList<VTableSlot>>(IgnoreScopeTypeComparer);
 		}
 
 		public TypeSig Type { get; private set; }
@@ -111,13 +113,13 @@ namespace Confuser.Renamer {
 			public List<VTableSlot> AllSlots = new List<VTableSlot>();
 			// All visible virtual method slots (i.e. excluded those being shadowed)
 			public Dictionary<VTableSignature, VTableSlot> SlotsMap = new Dictionary<VTableSignature, VTableSlot>();
-			public Dictionary<TypeSig, ILookup<VTableSignature, VTableSlot>> InterfaceSlots = new Dictionary<TypeSig, ILookup<VTableSignature, VTableSlot>>(TypeEqualityComparer.Instance);
+			public Dictionary<TypeSig, ILookup<VTableSignature, VTableSlot>> InterfaceSlots = new Dictionary<TypeSig, ILookup<VTableSignature, VTableSlot>>(IgnoreScopeTypeComparer);
 		}
 
 		public IEnumerable<VTableSlot> FindSlots(IMethod method) {
 			return Slots
 				.Concat(InterfaceSlots.SelectMany(iface => iface.Value))
-				.Where(slot => slot.MethodDef == method);
+				.Where(slot => MethodEqualityComparer.CompareDeclaringTypes.Equals(slot.MethodDef, method));
 		}
 
 		public static VTable ConstructVTable(TypeDef typeDef, VTableStorage storage) {
@@ -227,7 +229,7 @@ namespace Confuser.Renamer {
 							});
 					}
 					else {
-						var targetSlot = vTbl.AllSlots.SingleOrDefault(slot => slot.MethodDef == targetMethod);
+						var targetSlot = vTbl.AllSlots.SingleOrDefault(slot => MethodEqualityComparer.CompareDeclaringTypes.Equals(slot.MethodDef, targetMethod));
 						if (targetSlot == null) {
 							throw new Exception($"method [{method}] not found.");
 						}
@@ -243,7 +245,7 @@ namespace Confuser.Renamer {
 
 			// Populate result V-table
 			ret.InterfaceSlots = vTbl.InterfaceSlots.ToDictionary(
-				kvp => kvp.Key, kvp => (IList<VTableSlot>)kvp.Value.SelectMany(g => g).ToList(), TypeEqualityComparer.Instance);
+				kvp => kvp.Key, kvp => (IList<VTableSlot>)kvp.Value.SelectMany(g => g).ToList(), IgnoreScopeTypeComparer);
 
 			foreach (var slot in vTbl.AllSlots) {
 				ret.Slots.Add(slot);
