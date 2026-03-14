@@ -223,7 +223,8 @@ namespace dnlib.DotNet.Writer {
 			textSection.Add(importDirectory, pointerAlignment);
 			textSection.Add(startupStub, startupStub.Alignment);
 			managedExportsWriter.AddSdataChunks(sdataSection);
-			if (GetWin32Resources() is not null)
+			var w32Resources = GetWin32Resources();
+			if (w32Resources is not null && w32Resources.Root is not null && w32Resources.Root.Directories.Count > 0)
 				rsrcSection.Add(win32Resources, DEFAULT_WIN32_RESOURCES_ALIGNMENT);
 			relocSection.Add(relocDirectory, DEFAULT_RELOC_ALIGNMENT);
 		}
@@ -249,6 +250,15 @@ namespace dnlib.DotNet.Writer {
 			importAddressTable.Enable = needStartupStub;
 			importDirectory.Enable = needStartupStub;
 			startupStub.Enable = needStartupStub;
+
+			if (constants.IsEmpty)
+				textSection.Remove(constants);
+			if (netResources.IsEmpty)
+				textSection.Remove(netResources);
+			for (int i = sections.Count - 1; i >= 0; i--) {
+				if (sections[i].IsEmpty)
+					sections.RemoveAt(i);
+			}
 
 			foreach (var section in sections)
 				chunks.Add(section);

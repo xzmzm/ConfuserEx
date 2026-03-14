@@ -247,8 +247,11 @@ namespace dnlib.DotNet.Writer {
 			textSection.Add(netResources, DEFAULT_NETRESOURCES_ALIGNMENT);
 			textSection.Add(metadata, DEFAULT_METADATA_ALIGNMENT);
 			textSection.Add(debugDirectory, DebugDirectory.DEFAULT_DEBUGDIRECTORY_ALIGNMENT);
-			if (rsrcSection is not null)
-				rsrcSection.Add(win32Resources, DEFAULT_WIN32_RESOURCES_ALIGNMENT);
+			if (rsrcSection is not null) {
+				var w32Resources = GetWin32Resources();
+				if (w32Resources is not null && w32Resources.Root is not null && w32Resources.Root.Directories.Count > 0)
+					rsrcSection.Add(win32Resources, DEFAULT_WIN32_RESOURCES_ALIGNMENT);
+			}
 		}
 
 		/// <inheritdoc/>

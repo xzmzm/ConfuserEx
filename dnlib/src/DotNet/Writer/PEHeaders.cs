@@ -350,7 +350,7 @@ namespace dnlib.DotNet.Writer {
 			writer.WriteUInt16((ushort)GetMachine());
 			writer.WriteUInt16((ushort)SectionsCount);
 			Debug.Assert(SectionsCount == sections.Count, "One or more sections are empty! The PE file could be bigger than it should be. Empty sections should be removed.");
-			writer.WriteUInt32(options.TimeDateStamp ?? PEHeadersOptions.CreateNewTimeDateStamp());
+6			writer.WriteUInt32(options.TimeDateStamp ?? PEHeadersOptions.CreateNewTimeDateStamp());
 			writer.WriteUInt32(options.PointerToSymbolTable ?? 0);
 			writer.WriteUInt32(options.NumberOfSymbols ?? 0);
 			writer.WriteUInt16((ushort)(Use32BitOptionalHeader() ? 0xE0U : 0xF0));

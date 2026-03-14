@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -146,8 +146,9 @@ namespace Confuser.Renamer.Analyzers {
 				if ((instr.OpCode.Code == Code.Call || instr.OpCode.Code == Code.Callvirt)) {
 					var regMethod = (IMethod)instr.Operand;
 
-					if (regMethod.DeclaringType.FullName == "System.Windows.DependencyProperty" &&
-						regMethod.Name.String.StartsWith("Register")) {
+					if (regMethod.Name.String.StartsWith("Register") &&
+						(regMethod.DeclaringType.FullName == "System.Windows.DependencyProperty" ||
+						 regMethod.MethodSig?.RetType?.FullName == "System.Windows.DependencyProperty")) {
 						dpRegInstrs.Add(Tuple.Create(regMethod.Name.String.StartsWith("RegisterAttached"), instr));
 					}
 					else if (regMethod.DeclaringType.FullName == "System.Windows.EventManager" &&
@@ -218,6 +219,12 @@ namespace Confuser.Renamer.Analyzers {
 				}
 				Instruction ldstr = method.Body.Instructions[args[0]];
 				if (ldstr.OpCode.Code != Code.Ldstr) {
+					// If the name argument comes from a method parameter, this is a wrapper
+					// method (e.g. a helper that calls DependencyProperty.Register internally).
+					// The callers of the wrapper will be analyzed separately, so skip silently.
+					if (ldstr.IsLdarg()) {
+						continue;
+					}
 					if (!erred)
 						context.Logger.WarnFormat("Failed to extract dependency property name in '{0}'.", method.FullName);
 					erred = true;
